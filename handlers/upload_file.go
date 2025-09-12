@@ -7,8 +7,9 @@ import (
 	"fmt"
 	"gophkeer/server/internal/app"
 	"gophkeer/server/internal/models/attachment"
-	"gophkeer/server/internal/models/item"
 	"gophkeer/server/internal/services"
+	attachmentservices "gophkeer/server/internal/services/attachment_services"
+	itemservices "gophkeer/server/internal/services/item_services"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -42,7 +43,7 @@ func (h *KeeperHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 
 	// Создаем Item (статус pending)
-	newItem, err := item.CreateFileItem(r.Context(), h.db, activeUser.ID, header.Filename)
+	newItem, err := itemservices.CreateFileItem(r.Context(), h.db, activeUser.ID, header.Filename)
 	if err != nil {
 		http.Error(w, "failed to create item: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -110,7 +111,7 @@ func (h *KeeperHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		if err := attachment.Update(ctx, db, att); err != nil {
+		if err := attachmentservices.Update(ctx, db, att); err != nil {
 			app.Sugar.Errorw("failed to update attachment", "err", err)
 			return
 		}

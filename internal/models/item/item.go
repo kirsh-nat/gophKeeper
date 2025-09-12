@@ -17,6 +17,13 @@ type UserDataItem struct {
 	Data     json.RawMessage `json:"data"`
 }
 
+// LoginData служит для хранения информации типа логин - пароль
+type LoginData struct {
+	Login    string `json:"login"`
+	Password string `json:"password"`
+	Info     string `json:"name"`
+}
+
 type Item struct {
 	ID             int       `json:"id"`
 	UserID         int       `json:"user_id"`

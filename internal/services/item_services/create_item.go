@@ -25,7 +25,7 @@ func CreateUserItem(ctx context.Context, db *sql.DB, userData item.UserDataItem,
 			return nil, item.NewDataStrutureError("Can't read data for create login-password data item", err)
 		}
 
-		newItem, err := item.CreateLoginItem(ctx, db, userData.DataType, userID, userLoginData)
+		newItem, err := CreateLoginItem(ctx, db, userData.DataType, userID, userLoginData)
 		if err != nil {
 			return nil, item.NewDataStrutureError("Can't create login-password data item", err)
 		}

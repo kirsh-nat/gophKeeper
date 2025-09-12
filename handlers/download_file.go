@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"fmt"
-	"gophkeer/server/internal/models/attachment"
+	attachmentservices "gophkeer/server/internal/services/attachment_services"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -35,7 +35,7 @@ func (h *KeeperHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// достаем метаданные файла из БД
-	att, err := attachment.GetByItemID(r.Context(), h.db, itemID)
+	att, err := attachmentservices.GetByItemID(r.Context(), h.db, itemID)
 	if err != nil {
 		http.Error(w, "file not found", http.StatusNotFound)
 		return

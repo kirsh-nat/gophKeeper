@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"gophkeer/server/internal/app"
-	"gophkeer/server/internal/models/user"
+	userservices "gophkeer/server/internal/services/user-services"
 	"net/http"
 )
 
@@ -26,7 +26,7 @@ func (h *KeeperHandler) Registration(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := user.CreateUser(h.db, r.Context(), dataUser.Login, dataUser.Password)
+	user, err := userservices.CreateUser(h.db, r.Context(), dataUser.Login, dataUser.Password)
 	if err != nil {
 		// var dErr *userservices.UserExistsError
 		// if errors.As(err, &dErr) {

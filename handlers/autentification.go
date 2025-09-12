@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"gophkeer/server/internal/models/user"
+	userservices "gophkeer/server/internal/services/user-services"
 	"net/http"
 )
 
@@ -25,7 +26,7 @@ func (h *KeeperHandler) Authentication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := user.FindOne(h.db, r.Context(), dataUser.Login, dataUser.Password)
+	u, err := userservices.FindOne(h.db, r.Context(), dataUser.Login, dataUser.Password)
 	if err != nil {
 		var dErr *user.AuthorizationError
 		if errors.As(err, &dErr) {

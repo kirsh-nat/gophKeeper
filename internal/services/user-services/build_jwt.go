@@ -1,4 +1,4 @@
-package services
+package userservices
 
 import (
 	"gophkeer/server/internal/models/user"

@@ -1,15 +1,16 @@
-package attachment
+package attachmentservices
 
 import (
 	"context"
 	"database/sql"
 	"fmt"
+	"gophkeer/server/internal/models/attachment"
 )
 
 // Update обновляет существующий Attachment частично
 // Передавай только те поля, которые нужно изменить.
 // Например: SizeBytes, StorageKey, Sha256, Status
-func Update(ctx context.Context, db *sql.DB, att *Attachment) error {
+func Update(ctx context.Context, db *sql.DB, att *attachment.Attachment) error {
 	query := `
         UPDATE attachments
         SET

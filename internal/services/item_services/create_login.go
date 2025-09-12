@@ -1,17 +1,11 @@
-package item
+package itemservices
 
 import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"gophkeer/server/internal/models/item"
 )
-
-// LoginData служит для хранения информации типа логин - пароль
-type LoginData struct {
-	Login    string `json:"login"`
-	Password string `json:"password"`
-	Info     string `json:"name"`
-}
 
 // CreateLoginItem создает новый элемент типа логин - пароль
 //
@@ -19,8 +13,8 @@ type LoginData struct {
 //   - DataType - тип данных, в данном случае "login_data"
 //   - userID - айди владельца элемента
 //   - userData - данные для создания элемента
-func CreateLoginItem(ctx context.Context, db *sql.DB, DataType string, userID int, userData LoginData) (*Item, error) {
-	var item Item
+func CreateLoginItem(ctx context.Context, db *sql.DB, DataType string, userID int, userData item.LoginData) (*item.Item, error) {
+	var item item.Item
 
 	attrs, err := json.Marshal(userData)
 	if err != nil {
