@@ -9,13 +9,8 @@ GOOS=windows GOARCH=amd64 go build -ldflags "-X main.Version=1.0.0 -X 'main.Buil
 ** ПРИМЕРЫ ЗАПУСКА КЛИЕНТА*
 # Показать версию
 ./client-linux -version
-# Зарегистрироваться
-./client-linux -action register -user alice -pass 1234
-# Логин и создать item
-./client-linux -action create -user alice -pass 1234 -item "My File"
-# Загрузить файл
-./client-linux -action upload -user alice -pass 1234 -file "/home/alice/file.pdf"
-# Скачать файл
-./client-linux -action download -user alice -pass 1234 -id 1 -file "downloaded.pdf"
+# Показать список команд 
+./client-linux -help
+
 
 

@@ -10,4 +10,6 @@ var (
 	Sugar   zap.SugaredLogger
 	DB      *sql.DB
 	ConnStr string
+	Adress  string
+	Storage string
 )

@@ -1,26 +1,20 @@
 package app
 
 import (
-	"database/sql"
-	"flag"
+	"log"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 func SetAppConfig() {
 	setLogger()
-	// setDBConfig
-	flag.StringVar(&ConnStr,
-		//TODO: другая база хахаха
-		"d", "host=localhost port=5432 user=gophkeeper password=gophkeeper dbname=gophkeeperdb sslmode=disable",
-		"Адрес запуска HTTP-сервера",
-	)
-	if conn := os.Getenv("DATABASE_URI"); conn != "" {
-		ConnStr = conn
+	setDB()
+	errEnv := godotenv.Load("/opt/gophKeeper/.env")
+	if errEnv != nil {
+		log.Fatalf("Ошибка загрузки .env: %v", errEnv)
 	}
 
-	var err error
-	DB, err = sql.Open("pgx", ConnStr)
-	if err != nil {
-		panic(err)
-	}
+	Storage = os.Getenv("FILES_PATH")
+	Adress = os.Getenv("APP_HOST") + ":" + os.Getenv("APP_PORT")
 }

@@ -13,7 +13,6 @@ func (h *KeeperHandler) Registration(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	app.Sugar.Info("Registration sucecces 1")
 	var buf bytes.Buffer
 	_, err := buf.ReadFrom(r.Body)
 	if err != nil {
@@ -28,12 +27,6 @@ func (h *KeeperHandler) Registration(w http.ResponseWriter, r *http.Request) {
 
 	user, err := userservices.CreateUser(h.db, r.Context(), dataUser.Login, dataUser.Password)
 	if err != nil {
-		// var dErr *userservices.UserExistsError
-		// if errors.As(err, &dErr) {
-		// 	w.WriteHeader(http.StatusConflict)
-		// 	return
-
-		// }
 		app.Sugar.Errorw(err.Error(), "event", "create user")
 		h.StatusServerError(w, r)
 		return

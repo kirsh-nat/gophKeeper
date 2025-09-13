@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"gophkeer/server/cmd/server/migrations"
 	"gophkeer/server/handlers"
 	"gophkeer/server/internal/app"
@@ -28,5 +29,7 @@ func main() {
 func run(handler *handlers.KeeperHandler) error {
 
 	mux := handlers.Routes(handler)
-	return http.ListenAndServe("localhost:8080", mux)
+	fmt.Print("Server started on: ", app.Adress)
+	//return http.ListenAndServe("localhost:8080", mux)
+	return http.ListenAndServe(app.Adress, mux)
 }
