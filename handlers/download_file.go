@@ -14,14 +14,12 @@ func (h *KeeperHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Print("DownloadFile\n")
-
-	_, ok := h.getUserFromToken(w, r)
+	_, ok := getActiveUser(r)
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte("Unauthorized"))
 		return
 	}
-
 	// получаем item_id из query (?id=18)
 	itemIDStr := r.URL.Query().Get("id")
 	if itemIDStr == "" {
@@ -40,13 +38,6 @@ func (h *KeeperHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "file not found", http.StatusNotFound)
 		return
 	}
-
-	//TODO: проверяем, что файл принадлежит текущему пользователю
-	// it, err := item.GetByID(r.Context(), h.db, itemID)
-	// if err != nil || it.UserID != activeUser.ID {
-	// 	http.Error(w, "forbidden", http.StatusForbidden)
-	// 	return
-	// }
 
 	// открываем файл
 	f, err := os.Open(att.StorageKey)

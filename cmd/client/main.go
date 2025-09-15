@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -41,8 +42,16 @@ func NewClient(baseURL string) *Client {
 }
 
 func main() {
+	var envPath string
+	flag.StringVar(&envPath,
+		"env", "",
+		"Адрес запуска HTTP-сервера",
+	)
 
-	errEnv := godotenv.Load("/opt/gophKeeper/.env")
+	if envAddr, ok := os.LookupEnv("GOPHKEEPER_ENV"); ok {
+		envPath = envAddr
+	}
+	errEnv := godotenv.Load(envPath)
 	if errEnv != nil {
 		log.Fatalf("Ошибка загрузки .env: %v", errEnv)
 	}
@@ -50,8 +59,10 @@ func main() {
 	adres := os.Getenv("APP_HOST") + ":" + os.Getenv("APP_PORT")
 	client := NewClient(adres)
 
-	// Автологин по токену (как раньше)
-	token, _ := loadToken()
+	token, err := loadToken()
+	if err != nil {
+		log.Fatal(err)
+	}
 	client.Token = token
 	if !client.IsTokenValid() {
 		fmt.Println("Token expired or missing. Please login.")

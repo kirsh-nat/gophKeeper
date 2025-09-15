@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"bytes"
 	"encoding/json"
 	"gophkeer/server/internal/app"
 	userservices "gophkeer/server/internal/services/user-services"
@@ -13,19 +12,13 @@ func (h *KeeperHandler) Registration(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var buf bytes.Buffer
-	_, err := buf.ReadFrom(r.Body)
-	if err != nil {
+	var req dataUser
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.StatusBadRequest(w, r)
 		return
 	}
 
-	if err = json.Unmarshal(buf.Bytes(), &dataUser); err != nil {
-		h.StatusBadRequest(w, r)
-		return
-	}
-
-	user, err := userservices.CreateUser(h.db, r.Context(), dataUser.Login, dataUser.Password)
+	user, err := userservices.CreateUser(h.db, r.Context(), req.Login, req.Password)
 	if err != nil {
 		app.Sugar.Errorw(err.Error(), "event", "create user")
 		h.StatusServerError(w, r)

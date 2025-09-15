@@ -1,7 +1,7 @@
 package app
 
 import (
-	"log"
+	"flag"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -9,10 +9,19 @@ import (
 
 func SetAppConfig() {
 	setLogger()
-	setDB()
-	errEnv := godotenv.Load("/opt/gophKeeper/.env")
+	var envPath string
+	flag.StringVar(&envPath,
+		"env", "",
+		"Адрес env-файла",
+	)
+
+	if envAddr, ok := os.LookupEnv("GOPHKEEPER_ENV"); ok {
+		envPath = envAddr
+	}
+
+	errEnv := godotenv.Load(envPath)
 	if errEnv != nil {
-		log.Fatalf("Ошибка загрузки .env: %v", errEnv)
+		Sugar.Fatal("Fail to load .env: %v", errEnv)
 	}
 
 	Storage = os.Getenv("FILES_PATH")

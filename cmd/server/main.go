@@ -11,18 +11,25 @@ import (
 func main() {
 	app.SetAppConfig()
 	app.Sugar.Info("Start server")
-	err := migrations.RunMigrations(app.ConnStr)
+
+	db, connStr, err := app.InitDB()
 	if err != nil {
+		app.Sugar.Fatalw("cannot init db", "err", err)
+	}
+	defer func() {
+		if err := db.Close(); err != nil {
+			app.Sugar.Errorw("Error closing database", "error", err)
+		}
+	}()
+
+	if err := migrations.RunMigrations(connStr); err != nil {
 		app.Sugar.Fatalw(err.Error(), "event", "start db")
 	}
-	handler := handlers.NewHandler(app.DB)
+
+	handler := handlers.NewHandler(db)
 
 	if err := run(handler); err != nil {
 		app.Sugar.Fatalw(err.Error(), "event", "start server")
-	}
-
-	if app.DB != nil {
-		defer app.DB.Close()
 	}
 }
 
@@ -30,6 +37,6 @@ func run(handler *handlers.KeeperHandler) error {
 
 	mux := handlers.Routes(handler)
 	fmt.Print("Server started on: ", app.Adress)
-	//return http.ListenAndServe("localhost:8080", mux)
+
 	return http.ListenAndServe(app.Adress, mux)
 }

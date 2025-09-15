@@ -15,9 +15,8 @@ func (h *KeeperHandler) CreateItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	activeUser, ok := h.getUserFromToken(w, r)
+	activeUser, ok := getActiveUser(r)
 	if !ok {
-		app.Sugar.Errorw("User not found", "event")
 		w.WriteHeader(http.StatusUnauthorized)
 		w.Write([]byte("Unauthorized"))
 		return

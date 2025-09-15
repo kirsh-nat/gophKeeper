@@ -15,23 +15,19 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 )
 
 // UploadFile обрабатывает загрузку файла на сервер.
-// Он принимает multipart-форму, содержащую файл, и возвращает
-// HTTP-код Accepted (202) сразу после начала обработки.
-// После этого он создает Item (статус pending) и возвращает его ID
-// в теле ответа.
-// Затем он асинхронно обрабатывает файл, сохраняет его в хранилище
-// (local storage) и обновляет Attachment в БД.
 func (h *KeeperHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 	if !h.checkMethod(w, r, http.MethodPost) {
 		return
 	}
 
-	activeUser, ok := h.getUserFromToken(w, r)
+	activeUser, ok := getActiveUser(r)
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -42,14 +38,14 @@ func (h *KeeperHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	// Создаем Item (статус pending)
+	// Создаем Item (pending)
 	newItem, err := itemservices.CreateFileItem(r.Context(), h.db, activeUser.ID, header.Filename)
 	if err != nil {
 		http.Error(w, "failed to create item: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Сохраняем во временный файл (только чтобы передать в горутину)
+	// Временный файл для асинхронной обработки
 	tmpFile, err := os.CreateTemp("", "upload_*")
 	if err != nil {
 		http.Error(w, "failed to create temp file", http.StatusInternalServerError)
@@ -62,60 +58,66 @@ func (h *KeeperHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Возвращаем сразу Accepted
 	w.WriteHeader(http.StatusAccepted)
-	w.Write([]byte(fmt.Sprintf(`{"item_id":%d}`, newItem.ID)))
+	_, _ = w.Write([]byte(fmt.Sprintf(`{"item_id":%d}`, newItem.ID)))
 
 	go func(tmpPath string, hFile *multipart.FileHeader, itemID int, db *sql.DB) {
 		defer os.Remove(tmpPath)
 
-		storageDir := "storage"
-		os.MkdirAll(storageDir, 0755)
+		g, ctx := errgroup.WithContext(context.Background())
 
-		normalizedName := services.NormalizeFilename(hFile.Filename)
-		storageKey := fmt.Sprintf("%s/%d_%s", storageDir, itemID, normalizedName)
+		g.Go(func() error {
+			storageDir := "storage"
+			_ = os.MkdirAll(storageDir, 0755)
 
-		src, err := os.Open(tmpPath)
-		if err != nil {
-			app.Sugar.Errorw("failed to reopen temp file", "err", err)
-			return
+			normalizedName := services.NormalizeFilename(hFile.Filename)
+			storageKey := fmt.Sprintf("%s/%d_%s", storageDir, itemID, normalizedName)
+
+			src, err := os.Open(tmpPath)
+			if err != nil {
+				return fmt.Errorf("failed to reopen temp file: %w", err)
+			}
+			defer src.Close()
+
+			out, err := os.Create(storageKey)
+			if err != nil {
+				return fmt.Errorf("failed to create storage file: %w", err)
+			}
+			defer out.Close()
+
+			hasher := sha256.New()
+			size, err := io.Copy(io.MultiWriter(out, hasher), src)
+			if err != nil {
+				return fmt.Errorf("failed to copy to storage: %w", err)
+			}
+
+			ct := detectContentType(storageKey, hFile.Header.Get("Content-Type"))
+
+			att := &attachment.Attachment{
+				ItemID:         itemID,
+				SizeBytes:      size,
+				StorageKey:     storageKey,
+				StorageBackend: app.Storage,
+				Sha256:         hasher.Sum(nil),
+				ContentType:    ct,
+				Status:         "done",
+			}
+
+			updateCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+			defer cancel()
+
+			if err := attachmentservices.Update(updateCtx, db, att); err != nil {
+				return fmt.Errorf("failed to update attachment: %w", err)
+			}
+
+			return nil
+		})
+
+		if err := g.Wait(); err != nil {
+			app.Sugar.Errorw("upload processing failed", "err", err, "itemID", itemID)
+		} else {
+			app.Sugar.Infow("upload finished successfully", "itemID", itemID)
 		}
-		defer src.Close()
-
-		out, err := os.Create(storageKey)
-		if err != nil {
-			app.Sugar.Errorw("failed to create storage file", "err", err)
-			return
-		}
-		defer out.Close()
-
-		hasher := sha256.New()
-		size, err := io.Copy(io.MultiWriter(out, hasher), src)
-		if err != nil {
-			app.Sugar.Errorw("failed to copy to storage", "err", err)
-			return
-		}
-
-		ct := detectContentType(storageKey, hFile.Header.Get("Content-Type"))
-
-		att := &attachment.Attachment{
-			ItemID:         itemID,
-			SizeBytes:      size,
-			StorageKey:     storageKey,
-			StorageBackend: "local",
-			Sha256:         hasher.Sum(nil),
-			ContentType:    ct,
-			Status:         "done",
-		}
-
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
-		if err := attachmentservices.Update(ctx, db, att); err != nil {
-			app.Sugar.Errorw("failed to update attachment", "err", err)
-			return
-		}
-
 	}(tmpFile.Name(), header, newItem.ID, h.db)
 }
 

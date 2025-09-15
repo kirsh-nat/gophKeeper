@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"gophkeer/server/internal/models/user"
@@ -14,14 +13,8 @@ func (h *KeeperHandler) Authentication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var buf bytes.Buffer
-	_, err := buf.ReadFrom(r.Body)
-	if err != nil {
-		h.StatusBadRequest(w, r)
-		return
-	}
-
-	if err = json.Unmarshal(buf.Bytes(), &dataUser); err != nil {
+	var dataUser dataUser
+	if err := json.NewDecoder(r.Body).Decode(&dataUser); err != nil {
 		h.StatusBadRequest(w, r)
 		return
 	}
@@ -34,8 +27,6 @@ func (h *KeeperHandler) Authentication(w http.ResponseWriter, r *http.Request) {
 			return
 
 		}
-		h.StatusServerError(w, r)
-		return
 	}
 
 	_, ok := h.setCookieToken(u, w)
