@@ -41,21 +41,27 @@ func NewClient(baseURL string) *Client {
 	}
 }
 
-func main() {
+func parseFlags() string {
 	var envPath string
 	flag.StringVar(&envPath,
 		"env", "",
 		"Адрес запуска HTTP-сервера",
 	)
+	flag.Parse()
 
 	if envAddr, ok := os.LookupEnv("GOPHKEEPER_ENV"); ok {
 		envPath = envAddr
 	}
-	errEnv := godotenv.Load(envPath)
-	if errEnv != nil {
-		log.Fatalf("Ошибка загрузки .env: %v", errEnv)
-	}
+	return envPath
+}
 
+func loadEnv(envPath string) {
+	if err := godotenv.Load(envPath); err != nil {
+		log.Fatalf("Ошибка загрузки .env: %v", err)
+	}
+}
+
+func initClient() *Client {
 	adres := os.Getenv("APP_HOST") + ":" + os.Getenv("APP_PORT")
 	client := NewClient(adres)
 
@@ -64,23 +70,30 @@ func main() {
 		log.Fatal(err)
 	}
 	client.Token = token
-	if !client.IsTokenValid() {
-		fmt.Println("Token expired or missing. Please login.")
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Print("Username: ")
-		user, _ := reader.ReadString('\n')
-		user = strings.TrimSpace(user)
+	return client
+}
 
-		fmt.Print("Password: ")
-		pass, _ := reader.ReadString('\n')
-		pass = strings.TrimSpace(pass)
-
-		if err := client.Login(user, pass); err != nil {
-			fmt.Println("Login failed:", err)
-			return
-		}
+func handleAuth(client *Client) {
+	if client.IsTokenValid() {
+		return
 	}
+	fmt.Println("Token expired or missing. Please login.")
 
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("Username: ")
+	user, _ := reader.ReadString('\n')
+	user = strings.TrimSpace(user)
+
+	fmt.Print("Password: ")
+	pass, _ := reader.ReadString('\n')
+	pass = strings.TrimSpace(pass)
+
+	if err := client.Login(user, pass); err != nil {
+		log.Fatalf("Login failed: %v", err)
+	}
+}
+
+func runREPL(client *Client) {
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Println("Welcome to Gophkeer! Type 'help' for commands, 'exit' to quit.")
 
@@ -100,65 +113,82 @@ func main() {
 			continue
 		}
 
-		cmd := args[0]
-
-		switch cmd {
-		case "exit", "quit":
-			fmt.Println("Bye!")
+		if !handleCommand(client, args) {
 			return
-		case "help":
-			fmt.Println("Available commands: register, login, create, upload, download, version, exit")
-		case "version":
-			fmt.Printf("Version: %s\nBuild Date: %s\n", Version, BuildDate)
-		case "register":
-			if len(args) < 3 {
-				fmt.Println("Usage: register <username> <password>")
-				continue
-			}
-			if err := client.Register(args[1], args[2]); err != nil {
-				fmt.Println("Register error:", err)
-			}
-		case "login":
-			if len(args) < 3 {
-				fmt.Println("Usage: login <username> <password>")
-				continue
-			}
-			if err := client.Login(args[1], args[2]); err != nil {
-				fmt.Println("Login error:", err)
-			}
-		case "create":
-			if len(args) < 5 {
-				fmt.Println("Usage: create <data_type> <info> <login> <password>")
-				continue
-			}
-			id, err := client.CreateInfoItem(args[1], args[2], args[3], args[4])
-			if err != nil {
-				fmt.Println("Create error:", err)
-				continue
-			}
-			fmt.Println("Created item ID:", id)
-		case "upload":
-			if len(args) < 2 {
-				fmt.Println("Usage: upload <file_path>")
-				continue
-			}
-			if err := client.UploadFile(args[1]); err != nil {
-				fmt.Println("Upload error:", err)
-			}
-		case "download":
-			if len(args) < 3 {
-				fmt.Println("Usage: download <item_id> <dest_file>")
-				continue
-			}
-			itemID := 0
-			fmt.Sscanf(args[1], "%d", &itemID)
-			if err := client.DownloadFile(itemID, args[2]); err != nil {
-				fmt.Println("Download error:", err)
-			}
-		default:
-			fmt.Println("Unknown command:", cmd)
 		}
 	}
+}
+
+func handleCommand(client *Client, args []string) bool {
+	cmd := args[0]
+
+	switch cmd {
+	case "exit", "quit":
+		fmt.Println("Bye!")
+		return false
+	case "help":
+		fmt.Println("Available commands: register, login, create, upload, download, version, exit")
+	case "version":
+		fmt.Printf("Version: %s\nBuild Date: %s\n", Version, BuildDate)
+	case "register":
+		if len(args) < 3 {
+			fmt.Println("Usage: register <username> <password>")
+			return true
+		}
+		if err := client.Register(args[1], args[2]); err != nil {
+			fmt.Println("Register error:", err)
+		}
+	case "login":
+		if len(args) < 3 {
+			fmt.Println("Usage: login <username> <password>")
+			return true
+		}
+		if err := client.Login(args[1], args[2]); err != nil {
+			fmt.Println("Login error:", err)
+		}
+	case "create":
+		if len(args) < 5 {
+			fmt.Println("Usage: create <data_type> <info> <login> <password>")
+			return true
+		}
+		id, err := client.CreateInfoItem(args[1], args[2], args[3], args[4])
+		if err != nil {
+			fmt.Println("Create error:", err)
+			return true
+		}
+		fmt.Println("Created item ID:", id)
+	case "upload":
+		if len(args) < 2 {
+			fmt.Println("Usage: upload <file_path>")
+			return true
+		}
+		if err := client.UploadFile(args[1]); err != nil {
+			fmt.Println("Upload error:", err)
+		}
+	case "download":
+		if len(args) < 3 {
+			fmt.Println("Usage: download <item_id> <dest_file>")
+			return true
+		}
+		itemID := 0
+		fmt.Sscanf(args[1], "%d", &itemID)
+		if err := client.DownloadFile(itemID, args[2]); err != nil {
+			fmt.Println("Download error:", err)
+		}
+	default:
+		fmt.Println("Unknown command:", cmd)
+	}
+	return true
+}
+
+func main() {
+	envPath := parseFlags()
+	loadEnv(envPath)
+
+	client := initClient()
+	handleAuth(client)
+
+	runREPL(client)
 }
 
 // Register производит регистрацию пользователя на сервере.
