@@ -18,13 +18,14 @@ type dataUser struct {
 }
 
 type KeeperHandler struct {
-	db *sql.DB
+	db      *sql.DB
+	Storage string //путь к папке для хранения загружаемых файлов
 }
 
 const tokenExp = time.Hour * 3
 
-func NewHandler(db *sql.DB) *KeeperHandler {
-	return &KeeperHandler{db: db}
+func NewHandler(db *sql.DB, storage string) *KeeperHandler {
+	return &KeeperHandler{db: db, Storage: storage}
 }
 
 func (h *KeeperHandler) checkMethod(w http.ResponseWriter, r *http.Request, method string) bool {

@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	app.SetAppConfig()
+	storage, adress := app.SetAppConfig()
 	app.Sugar.Info("Start server")
 
 	db, connStr, err := app.InitDB()
@@ -26,17 +26,17 @@ func main() {
 		app.Sugar.Fatalw(err.Error(), "event", "start db")
 	}
 
-	handler := handlers.NewHandler(db)
+	handler := handlers.NewHandler(db, storage)
 
-	if err := run(handler); err != nil {
+	if err := run(handler, adress); err != nil {
 		app.Sugar.Fatalw(err.Error(), "event", "start server")
 	}
 }
 
-func run(handler *handlers.KeeperHandler) error {
+func run(handler *handlers.KeeperHandler, adress string) error {
 
 	mux := handlers.Routes(handler)
-	fmt.Print("Server started on: ", app.Adress)
+	fmt.Print("Server started on: ", adress)
 
-	return http.ListenAndServe(app.Adress, mux)
+	return http.ListenAndServe(adress, mux)
 }

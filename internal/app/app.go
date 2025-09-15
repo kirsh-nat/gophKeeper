@@ -5,7 +5,5 @@ import (
 )
 
 var (
-	Sugar   zap.SugaredLogger
-	Adress  string
-	Storage string
+	Sugar zap.SugaredLogger
 )

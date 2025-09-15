@@ -7,7 +7,15 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func SetAppConfig() {
+// SetAppConfig загружает конфигурационный файл, настройки логгера, и возвращает
+// путь для хранения файлов и адрес запуска веб-приложения.
+//
+// Функция возвращает ошибку, если файл конфигурации не существует.
+// В противном случае функция возвращает путь к файлу конфигурации.
+//
+// Env-файл по умолчанию находится в директории запуска приложения.
+// Env-файл может быть переопределен с помощью переменной окружения GOPHKEEPER_ENV.
+func SetAppConfig() (string, string) {
 	setLogger()
 	var envPath string
 	flag.StringVar(&envPath,
@@ -24,6 +32,9 @@ func SetAppConfig() {
 		Sugar.Fatal("Fail to load .env: %v", errEnv)
 	}
 
-	Storage = os.Getenv("FILES_PATH")
-	Adress = os.Getenv("APP_HOST") + ":" + os.Getenv("APP_PORT")
+	storage := os.Getenv("FILES_PATH")
+	adress := os.Getenv("APP_HOST") + ":" + os.Getenv("APP_PORT")
+
+	return storage, adress
+
 }

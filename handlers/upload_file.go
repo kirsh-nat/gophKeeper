@@ -97,7 +97,7 @@ func (h *KeeperHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 				ItemID:         itemID,
 				SizeBytes:      size,
 				StorageKey:     storageKey,
-				StorageBackend: app.Storage,
+				StorageBackend: h.Storage,
 				Sha256:         hasher.Sum(nil),
 				ContentType:    ct,
 				Status:         "done",
